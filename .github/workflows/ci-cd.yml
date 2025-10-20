@@ -1,0 +1,51 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          cd api
+          pip install -r requirements.txt
+
+      - name: Test application (Health check)
+        run: |
+          cd api
+          uvicorn app:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          curl http://localhost:8000/health | grep "Hello, World!"
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t hello-devops-api ./api
+
+      - name: Test Docker image
+        run: |
+          cd api
+          pip install requirements.txt
+          pytest
+
+
